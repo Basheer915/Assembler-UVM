@@ -12,3 +12,12 @@
 2: STORE A=2 B=675 -> 0x1A, 0x15, 0x00
 3: ABS A=4 B=0 -> 0x04, 0x00, 0x00
 Размер двоичного файла: 12 байт
+
+Этап 3
+Сборка программы копирования:
+.\run.bat -input examples\copy_array.csv -output build\copy_array.bin
+
+Запуск интерпретатора:
+go run ./src/cmd/interpreter -input build\copy_array.bin -dump build\memory.xml -start 200 -end 202
+
+В XML-дампе ячейки 200–202 содержат значения 7, 12, 24.

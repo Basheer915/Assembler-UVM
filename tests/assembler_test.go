@@ -90,3 +90,50 @@ func TestEncodeRejectsInvalidInstructionFields(t *testing.T) {
 		t.Fatal("Encode() error = nil, want invalid field error")
 	}
 }
+
+func TestDecodeSpecificationCommands(t *testing.T) {
+	machineCode := []byte{
+		0xF8, 0x09, 0x00,
+		0x05, 0x00, 0x00,
+		0x1A, 0x15, 0x00,
+		0x04, 0x00, 0x00,
+	}
+	want := []assembler.Instruction{
+		{Command: "LOAD", A: 0, B: 319},
+		{Command: "READ", A: 5, B: 0},
+		{Command: "STORE", A: 2, B: 675},
+		{Command: "ABS", A: 4, B: 0},
+	}
+
+	got, err := assembler.Decode(machineCode)
+	if err != nil {
+		t.Fatalf("Decode() error = %v", err)
+	}
+	if len(got) != len(want) {
+		t.Fatalf("Decode() returned %d instructions, want %d", len(got), len(want))
+	}
+	for index := range want {
+		if got[index] != want[index] {
+			t.Errorf("instruction %d = %+v, want %+v", index, got[index], want[index])
+		}
+	}
+}
+
+func TestDecodeRejectsInvalidMachineCode(t *testing.T) {
+	tests := []struct {
+		name string
+		code []byte
+	}{
+		{name: "incomplete instruction", code: []byte{0x01}},
+		{name: "unknown opcode", code: []byte{0x06, 0x00, 0x00}},
+		{name: "operand exceeds field", code: []byte{0x00, 0x00, 0x10}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := assembler.Decode(test.code); err == nil {
+				t.Fatal("Decode() error = nil, want invalid machine-code error")
+			}
+		})
+	}
+}

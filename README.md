@@ -25,6 +25,17 @@
 go test ./...
 ```
 
+## Этап 3. Интерпретатор и память
+
+Сборка и запуск программы копирования массива:
+
+```powershell
+go run ./src/cmd/assembler -input examples\copy_array.csv -output build\copy_array.bin
+go run ./src/cmd/interpreter -input build\copy_array.bin -dump build\memory.xml -start 200 -end 202
+```
+
+Результат в XML-дампе: ячейки 200–202 содержат значения `7`, `12`, `24`.
+
 ## Этапы проекта
 
 1. Перевод программы в промежуточное представление.
