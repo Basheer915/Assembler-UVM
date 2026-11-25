@@ -1,0 +1,13 @@
+Этап 1
+
+Тесты:
+go test ./...
+
+Запуск примера:
+.\run.bat -input examples\specification.csv -output build\program.ir.json -test
+
+Пример входных команд (examples\specification.csv):
+LOAD,319
+READ,
+STORE,675
+ABS,
