@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -22,8 +21,8 @@ func run(args []string, output, errorOutput io.Writer) error {
 	flags := flag.NewFlagSet("assembler", flag.ContinueOnError)
 	flags.SetOutput(errorOutput)
 	inputPath := flags.String("input", "", "path to CSV source")
-	outputPath := flags.String("output", "", "path to JSON intermediate output")
-	testMode := flags.Bool("test", false, "print intermediate instruction fields")
+	outputPath := flags.String("output", "", "path to binary machine-code output")
+	testMode := flags.Bool("test", false, "print instruction fields and encoded bytes")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -34,40 +33,67 @@ func run(args []string, output, errorOutput io.Writer) error {
 		return fmt.Errorf("unexpected positional arguments: %v", flags.Args())
 	}
 
-	source, err := os.Open(*inputPath)
+	instructions, machineCode, err := assembleFile(*inputPath)
 	if err != nil {
-		return fmt.Errorf("open input: %w", err)
+		return err
+	}
+	if err := writeOutput(*outputPath, machineCode); err != nil {
+		return err
+	}
+	if *testMode {
+		if err := printTestOutput(output, instructions, machineCode); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(output, "Размер двоичного файла: %d байт\n", len(machineCode)); err != nil {
+		return fmt.Errorf("print output size: %w", err)
+	}
+	return nil
+}
+
+func assembleFile(inputPath string) ([]assembler.Instruction, []byte, error) {
+	source, err := os.Open(inputPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("open input: %w", err)
 	}
 	defer source.Close()
 
 	instructions, err := assembler.Translate(source)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	encoded, err := json.MarshalIndent(instructions, "", "  ")
+	machineCode, err := assembler.Encode(instructions)
 	if err != nil {
-		return fmt.Errorf("encode intermediate representation: %w", err)
+		return nil, nil, fmt.Errorf("encode machine code: %w", err)
 	}
-	encoded = append(encoded, '\n')
-	if err := os.MkdirAll(filepath.Dir(*outputPath), 0755); err != nil {
+	return instructions, machineCode, nil
+}
+
+func writeOutput(outputPath string, machineCode []byte) error {
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 		return fmt.Errorf("create output directory: %w", err)
 	}
-	if err := os.WriteFile(*outputPath, encoded, 0644); err != nil {
+	if err := os.WriteFile(outputPath, machineCode, 0644); err != nil {
 		return fmt.Errorf("write output: %w", err)
 	}
+	return nil
+}
 
-	if *testMode {
-		for index, instruction := range instructions {
-			if _, err := fmt.Fprintf(
-				output,
-				"%d: %s A=%d B=%d\n",
-				index,
-				instruction.Command,
-				instruction.A,
-				instruction.B,
-			); err != nil {
-				return fmt.Errorf("print intermediate representation: %w", err)
-			}
+func printTestOutput(output io.Writer, instructions []assembler.Instruction, machineCode []byte) error {
+	for index, instruction := range instructions {
+		offset := index * assembler.InstructionSize
+		if _, err := fmt.Fprintf(
+			output,
+			"%d: %s A=%d B=%d -> 0x%02X, 0x%02X, 0x%02X\n",
+			index,
+			instruction.Command,
+			instruction.A,
+			instruction.B,
+			machineCode[offset],
+			machineCode[offset+1],
+			machineCode[offset+2],
+		); err != nil {
+			return fmt.Errorf("print encoded instruction: %w", err)
 		}
 	}
 	return nil

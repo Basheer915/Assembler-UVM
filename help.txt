@@ -1,13 +1,14 @@
 Этап 1
-
-Тесты:
-go test ./...
-
-Запуск примера:
+Тесты: go test ./...
 .\run.bat -input examples\specification.csv -output build\program.ir.json -test
 
-Пример входных команд (examples\specification.csv):
-LOAD,319
-READ,
-STORE,675
-ABS,
+Этап 2
+Запуск:
+.\run.bat -input examples\specification.csv -output build\program.bin -test
+
+Ожидаемый вывод:
+0: LOAD A=0 B=319 -> 0xF8, 0x09, 0x00
+1: READ A=5 B=0 -> 0x05, 0x00, 0x00
+2: STORE A=2 B=675 -> 0x1A, 0x15, 0x00
+3: ABS A=4 B=0 -> 0x04, 0x00, 0x00
+Размер двоичного файла: 12 байт

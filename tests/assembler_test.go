@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -55,5 +56,37 @@ func TestTranslateRejectsInvalidCommandsAndOperands(t *testing.T) {
 				t.Fatal("Translate() error = nil, want an error")
 			}
 		})
+	}
+}
+
+func TestEncodeSpecificationCommands(t *testing.T) {
+	instructions := []assembler.Instruction{
+		{Command: "LOAD", A: 0, B: 319},
+		{Command: "READ", A: 5, B: 0},
+		{Command: "STORE", A: 2, B: 675},
+		{Command: "ABS", A: 4, B: 0},
+	}
+	want := []byte{
+		0xF8, 0x09, 0x00,
+		0x05, 0x00, 0x00,
+		0x1A, 0x15, 0x00,
+		0x04, 0x00, 0x00,
+	}
+
+	got, err := assembler.Encode(instructions)
+	if err != nil {
+		t.Fatalf("Encode() error = %v", err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Errorf("Encode() = % X, want % X", got, want)
+	}
+}
+
+func TestEncodeRejectsInvalidInstructionFields(t *testing.T) {
+	instructions := []assembler.Instruction{
+		{Command: "LOAD", A: 1, B: 319},
+	}
+	if _, err := assembler.Encode(instructions); err == nil {
+		t.Fatal("Encode() error = nil, want invalid field error")
 	}
 }

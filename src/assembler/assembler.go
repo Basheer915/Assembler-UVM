@@ -9,15 +9,20 @@ import (
 )
 
 const (
-	loadMax  = 1<<17 - 1
-	storeMax = 1<<10 - 1
+	loadMax      = 1<<17 - 1
+	storeMax     = 1<<10 - 1
+	loadOpcode   = 0
+	storeOpcode  = 2
+	readOpcode   = 5
+	absOpcode    = 4
+	operandShift = 3
 )
+
 type Instruction struct {
 	Command string `json:"command"`
 	A       uint8  `json:"A"`
 	B       uint32 `json:"B"`
 }
-
 
 func Translate(source io.Reader) ([]Instruction, error) {
 	reader := csv.NewReader(source)
@@ -67,23 +72,23 @@ func translateRecord(record []string) (Instruction, error) {
 		if err != nil {
 			return Instruction{}, fmt.Errorf("LOAD: %w", err)
 		}
-		return Instruction{Command: command, A: 0, B: value}, nil
+		return Instruction{Command: command, A: loadOpcode, B: value}, nil
 	case "STORE":
 		value, err := parseOperand(operand, storeMax)
 		if err != nil {
 			return Instruction{}, fmt.Errorf("STORE: %w", err)
 		}
-		return Instruction{Command: command, A: 2, B: value}, nil
+		return Instruction{Command: command, A: storeOpcode, B: value}, nil
 	case "READ":
 		if operand != "" {
 			return Instruction{}, fmt.Errorf("READ does not take an operand")
 		}
-		return Instruction{Command: command, A: 5}, nil
+		return Instruction{Command: command, A: readOpcode}, nil
 	case "ABS":
 		if operand != "" {
 			return Instruction{}, fmt.Errorf("ABS does not take an operand")
 		}
-		return Instruction{Command: command, A: 4}, nil
+		return Instruction{Command: command, A: absOpcode}, nil
 	default:
 		return Instruction{}, fmt.Errorf("unknown command %q", command)
 	}
